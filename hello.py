@@ -10,23 +10,19 @@ class Writer(object):
         print self._json.dumps(data, indent=2)
 
 
+def read(prompt):
+    '@role-inst input'
+    return raw_input(prompt)
+
+
 class Hello(object):
     """
     @role hello
-    @requires writer
+    @requires input writer
     """
-    def __init__(self, writer):
+    def __init__(self, read, writer):
+        self._read = read
         self._writer = writer
-        
 
-    def run(self, name):
-        self._writer.write({'Hello': name})
-
-if __name__=='__main__':
-    import __main__
-    import json
-    from docinject import Context
-    ctx = Context()
-    ctx.register_instance('json', json)
-    ctx.inject_module(__main__)
-    ctx.get_instance('hello').run('world')
+    def run(self):
+        self._writer.write({'Hello': self._read('Who r u?\n')})

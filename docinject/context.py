@@ -1,4 +1,5 @@
 import inspect
+from itertools import ifilter
 
 def parse_doc(s):
     result = {}
@@ -9,7 +10,9 @@ def parse_doc(s):
         words = iter(line.split())
         first = words.next()
         if first.startswith('@'):
-            result.setdefault(first, []).extend(words)
+            for word in words:
+                names = (w.strip() for w in word.split(','))
+                result.setdefault(first, []).extend(ifilter(None, names))
 
     return result
 
@@ -28,7 +31,6 @@ class Context(object):
     def __check_free(self, name):
         if name in self._roles:            
             raise RoleOverriding(name)
-
     
     def __inject_one(self, item, role, dependencies):
         self.__check_free(role)
@@ -46,8 +48,9 @@ class Context(object):
         
         doc = getattr(item, '__doc__', '')
         attrs = parse_doc(doc)
-        roles = attrs.get('@role')
-        if not roles:
+        roles = attrs.get('@role', ())
+        role_inst = attrs.get('@role-inst', ())
+        if not (role_inst or roles):
             if enforce:
                 raise RoleNotFound(item)
             return False
@@ -56,8 +59,8 @@ class Context(object):
         for r in roles:
             self.__inject_one(item, r, dependencies)
 
-        for r in attrs.get('@role-inst', ()):
-            self.register_isntance(r, item)
+        for r in role_inst:
+            self.register_instance(r, item)
 
     def inject_module(self, module):
         modname = module.__name__
